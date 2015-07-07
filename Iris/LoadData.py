@@ -44,7 +44,7 @@ def LoadData(FilePath):
             FilePath = new_path
 
 
-    print '... loading data'
+
 
     # Load the dataset
     #f = open(FilePath, 'r')

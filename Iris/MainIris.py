@@ -1,5 +1,6 @@
 __author__ = 'Giovanni'
 import LoadData
+import LogisticRegr
 import theano
 import theano.tensor as T
 import numpy as np
@@ -25,5 +26,20 @@ n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
 n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
 print '... building the model'
+
+classifier = LogisticRegr.LogisticRegr(input=x, n_in=4, n_out=3)
+
+
+
+W = theano.shared(
+    value=np.zeros(
+        (4, 3),
+        dtype=theano.config.floatX
+        ),
+        name='W',
+        borrow=True
+    )
+
+test = T.nnet.softmax(T.dot(x, W))
 
 print ('Ok Main')
