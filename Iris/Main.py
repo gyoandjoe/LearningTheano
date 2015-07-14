@@ -5,8 +5,9 @@ import theano
 import theano.tensor as T
 import numpy as np
 
-batch_size = 10
-index = T.lscalar()  # index to a [mini]batch
+#batch_size = 10
+learning_rate=0.013
+#index = T.lscalar()  # index to a [mini]batch
 
 # generate symbolic variables for input (x and y represent a
 # minibatch)
@@ -21,45 +22,107 @@ train_set_x, train_set_y = dataSets[0]
 valid_set_x, valid_set_y = dataSets[1]
 test_set_x, test_set_y = dataSets[2]
 
-n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
-n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
-n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
+n_train_batches = train_set_x.get_value(borrow=True).shape[0]
+n_valid_batches = valid_set_x.get_value(borrow=True).shape[0]
+n_test_batches = test_set_x.get_value(borrow=True).shape[0]
 
 print '... building the model'
 
+
+
 classifier = LogisticRegr.LogisticRegr(input=x, n_in=4, n_out=3)
+cost = classifier.negative_log_likelihood(y)
+
+#y = train_set_y[: n_train_batches]
+#x = train_set_x[: n_train_batches]
+
+
+#numErrorSim = classifier.errors(y)
+#numErrorFunc = theano.function([], numErrorSim)
+
+
+test_model = theano.function(
+    inputs=[],
+    outputs=classifier.errors(y),
+    givens={
+        x: test_set_x[: n_test_batches],
+        y: test_set_y[: n_test_batches]
+    }
+)
+
+validate_model = theano.function(
+    inputs=[],
+    outputs=classifier.errors(y),
+    givens={
+        x: valid_set_x[: n_valid_batches],
+        y: valid_set_y[: n_valid_batches]
+    }
+)
+
+# compute the gradient of cost with respect to theta = (W,b)
+g_W = T.grad(cost=cost, wrt=classifier.W)
+g_b = T.grad(cost=cost, wrt=classifier.b)
+
+updates = [(classifier.W, classifier.W - learning_rate * g_W),
+            (classifier.b, classifier.b - learning_rate * g_b)
+          ]
+
+train_model = theano.function(
+        inputs=[],
+        outputs=cost,
+        updates=updates,
+        givens={
+            x: train_set_x[: n_train_batches],
+            y: train_set_y[: n_train_batches]
+        }
+    )
+
+predict_model = theano.function(
+    inputs=[x],
+    outputs=classifier.y_pred)
+
+numErrorsInTest = test_model()
+costValue = train_model()
+
+for index in xrange(1900):
+    costValue = train_model()
+
+numErrorsInTest = test_model()
+
+for index in xrange(2000):
+    costValue = train_model()
+
+numErrorsInTest = test_model()
+numErrorsInVal = validate_model()
+
+#for index in xrange(6000):
+#    costValue = train_model()
+
+#numErrorsInTest = test_model()
+#numErrorsInVal = validate_model()
 
 
 
+values_validDataSet = valid_set_x.get_value()
+yToPrintS =  valid_set_y
+yToPrintF = theano.function([],yToPrintS)
+yToPrintV = yToPrintF()
 
-#mm = train_set_x.get_value(borrow=True)
-#W = theano.shared(
-#    value=np.ones(
-#        (90, 4),
-#        dtype=theano.config.floatX
-#        ),
-#        name='W',
-#        borrow=True
-#    )
-#num1 = T.scalar()
-#num2 = T.scalar()
-#Wm = T.mul(x,num2)
-#wres = theano.function([x,num2],Wm)
-#rr = wres(train_set_x.get_value(),5)
+predicted_values = predict_model(values_validDataSet)
+print values_validDataSet
+print "     True Values: " + str(yToPrintV)
+print "Predicted Values: " + str(predicted_values)
+print 'Finish'
 
-############
-testMat = np.array([[1000,815,815,815,815],[20,20,20,20,21],[0.5,0.7,0.4,0.6,0.1],[10,10,70,5,5]],dtype=theano.config.floatX)
-test = T.nnet.softmax(x)
-testF = theano.function([x],test)
-testRes = testF(testMat)
+#numErrorsRes = numErrorFunc()
+#print ('... training the model, num Errors: %i' , numErrorsRes)
 
-#MaxSim = T.argmax(test, axis=1)
-#MaxF = theano.function([test],MaxSim)
-#resMax = MaxF(testRes)
 
-logSim = T.log(test)
-logF = theano.function([test],logSim)
-logRes = logF(testRes)
+#numErrorsRes = numErrorFunc()
+#print ('... training the model, num Errors: %i' , numErrorsRes)
+
+#numErrorsRes = numErrorFunc()
+#print ('... training the model, num Errors: %i' , numErrorsRes)
 
 
 print ('Ok Main')
